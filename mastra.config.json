@@ -1,0 +1,10 @@
+{
+  "name": "catalyst-be",
+  "agents": "./src/mastra/index.ts",
+  "env": {
+    "development": {
+      "port": 4111,
+      "host": "localhost"
+    }
+  }
+}

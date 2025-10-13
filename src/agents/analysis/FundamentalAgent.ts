@@ -2,7 +2,7 @@ import { BaseAgent } from "../base/BaseAgent.js";
 
 /**
  * 🧠 Fundamental Analysis Agent
- * 
+ *
  * Role:
  * Evaluates the intrinsic value and financial health of a company using real-world fundamentals.
  * Designed for medium-term (2–12 week) swing or value-based investing signals.
@@ -85,7 +85,11 @@ Return structured JSON output with these fields:
       peRatio: 24.8,
       dcfFairValue: 185.2,
       valuationSummary: `Based on trailing fundamentals, ${input.symbol} appears fairly valued with moderate growth potential.`,
-      strengths: ["Consistent EPS growth", "Healthy free cash flow", "Strong market position"],
+      strengths: [
+        "Consistent EPS growth",
+        "Healthy free cash flow",
+        "Strong market position",
+      ],
       weaknesses: ["Moderate debt levels", "Slight margin compression"],
       fairValueRating: "Fairly Valued",
       confidence: 0.78,
