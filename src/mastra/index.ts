@@ -8,6 +8,7 @@ import { dalioAgent } from "./agents/dalioAgent.js";
 import { ackmanAgent } from "./agents/ackmanAgent.js";
 import { cohenAgent } from "./agents/cohenAgent.js";
 import { thielAgent } from "./agents/thielAgent.js";
+import { riskAgent } from "./agents/riskAgent.js";
 import { chartVisualizationAgent } from "./agents/chartVisualizationAgent.js";
 
 export const mastra = new Mastra({
@@ -21,6 +22,7 @@ export const mastra = new Mastra({
     ackmanAgent,
     cohenAgent,
     thielAgent,
+    riskAgent,
     chartVisualizationAgent,
   },
 });

@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { perplexity } from "@ai-sdk/perplexity";
 import { Agent } from "@mastra/core/agent";
 import {
   getStockData,
@@ -47,7 +47,7 @@ When analyzing a stock, follow these steps:
 
 Always return structured analysis with clear reasoning and confidence levels.
 `,
-  model: google("gemini-2.0-flash-exp"),
+  model: perplexity("sonar-pro"),
   tools: {
     getStockData,
     getStockNews,

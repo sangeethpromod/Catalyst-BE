@@ -7,7 +7,9 @@ The new chart visualization system provides powerful tools for Bill Ackman and P
 ### Available Tools:
 
 #### 1. **generateSnakeyChart**
+
 Creates flowing "snake" diagrams that visualize price movement as a continuous flow:
+
 ```json
 {
   "symbol": "TSLA",
@@ -17,8 +19,10 @@ Creates flowing "snake" diagrams that visualize price movement as a continuous f
 }
 ```
 
-#### 2. **generateMultiTickerChart** 
+#### 2. **generateMultiTickerChart**
+
 Compares multiple stocks with correlation analysis:
+
 ```json
 {
   "symbols": ["TSLA", "RIVN", "LCID"],
@@ -30,25 +34,31 @@ Compares multiple stocks with correlation analysis:
 ### Integration with Investment Agents:
 
 #### 🎯 **Bill Ackman Agent** (`ackmanAgent`)
+
 Now includes chart analysis for:
+
 - **Value Catalyst Visualization**: Snake charts show price flow during activist campaigns
 - **Peer Comparison**: Multi-ticker charts identify relative undervaluation
 - **Entry Point Analysis**: Technical setups aligned with fundamental catalysts
 
 Example Usage:
-*"Analyze TSLA for activist opportunities and show me a snake chart comparing it to traditional automakers over the past year"*
+_"Analyze TSLA for activist opportunities and show me a snake chart comparing it to traditional automakers over the past year"_
 
 #### 🚀 **Peter Thiel Agent** (`thielAgent`)
+
 Enhanced with monopoly visualization:
+
 - **Exponential Growth Curves**: Snake charts reveal monopoly formation patterns
 - **Network Effect Mapping**: Correlation analysis with ecosystem partners
 - **Disruption Signatures**: Price patterns showing competitive advantage
 
 Example Usage:
-*"Show me how NVDA's monopolistic characteristics appear in snake chart patterns compared to competitors over 2 years"*
+_"Show me how NVDA's monopolistic characteristics appear in snake chart patterns compared to competitors over 2 years"_
 
 #### 📊 **Chart Visualization Agent** (`chartVisualizationAgent`)
+
 Dedicated specialist for:
+
 - Advanced snake diagram creation
 - Multi-layered technical analysis
 - Interactive chart features
@@ -56,7 +66,7 @@ Dedicated specialist for:
 
 ### Key Features:
 
-1. **Snake Diagrams**: 
+1. **Snake Diagrams**:
    - Flowing visualization of price momentum
    - Color gradients show strength/weakness
    - Curvature indicates volatility changes

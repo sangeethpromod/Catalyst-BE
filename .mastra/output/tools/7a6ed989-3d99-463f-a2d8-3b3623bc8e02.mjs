@@ -285,10 +285,12 @@ function generateComparisonInsights(tickerData, correlations) {
   const insights = [];
   const corrEntries = Object.entries(correlations);
   const highestCorr = corrEntries.reduce(
-    (max, curr) => curr[1] > max[1] ? curr : max
+    ([maxKey, maxVal], [currKey, currVal]) => currVal > maxVal ? [currKey, currVal] : [maxKey, maxVal],
+    ["", -Infinity]
   );
   const lowestCorr = corrEntries.reduce(
-    (min, curr) => curr[1] < min[1] ? curr : min
+    ([minKey, minVal], [currKey, currVal]) => currVal < minVal ? [currKey, currVal] : [minKey, minVal],
+    ["", Infinity]
   );
   insights.push(
     `Highest correlation: ${highestCorr[0]} (${(highestCorr[1] * 100).toFixed(2)}%)`

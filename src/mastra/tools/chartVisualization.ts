@@ -71,8 +71,8 @@ export const generateSnakeyChart = createTool({
       timeframe,
       dataPoints: priceData.length,
       priceRange: {
-        min: Math.min(...priceData.map((d) => d.l || 0)),
-        max: Math.max(...priceData.map((d) => d.h || 0)),
+        min: Math.min(...priceData.map((d: any) => d.l || 0)),
+        max: Math.max(...priceData.map((d: any) => d.h || 0)),
         current: priceData[priceData.length - 1]?.c || 0,
       },
       chartConfig,
@@ -126,14 +126,15 @@ export const generateMultiTickerChart = createTool({
     const toStr = to.toISOString().split("T")[0];
 
     // Fetch data for all symbols
-    const tickerData = {};
+    const tickerData: Record<string, any[]> = {};
     for (const symbol of symbols) {
       const data = await polygonClient.getAggsDaily(symbol, fromStr, toStr);
       tickerData[symbol] = data.results || [];
     }
 
     // Calculate correlations between tickers
-    const correlations = calculateCorrelations(tickerData);
+    const correlations: Record<string, number> =
+      calculateCorrelations(tickerData);
 
     // Normalize data if requested
     const normalizedData = normalizeData
@@ -173,7 +174,7 @@ function generateChartConfig(
 
   // Add price series based on chart type
   if (chartType === "snakey") {
-    baseConfig.series.push({
+    (baseConfig.series as any[]).push({
       name: "Snake Path",
       type: "line",
       data: data.map((d, i) => [i, d.c]),
@@ -182,13 +183,13 @@ function generateChartConfig(
       gradient: true,
     });
   } else if (chartType === "candlestick") {
-    baseConfig.series.push({
+    (baseConfig.series as any[]).push({
       name: symbol,
       type: "candlestick",
       data: data.map((d) => [d.t, d.o, d.h, d.l, d.c]),
     });
   } else {
-    baseConfig.series.push({
+    (baseConfig.series as any[]).push({
       name: symbol,
       type: chartType,
       data: data.map((d) => [d.t, d.c]),
@@ -199,7 +200,7 @@ function generateChartConfig(
 }
 
 function calculateTechnicalIndicators(data: any[], indicators: string[]) {
-  const results = {};
+  const results: Record<string, any> = {};
 
   if (indicators.includes("MA")) {
     results["MA20"] = calculateMovingAverage(data, 20);
@@ -225,8 +226,8 @@ function calculateMovingAverage(data: any[], period: number) {
 
 function calculateRSI(data: any[], period: number) {
   // Simplified RSI calculation
-  const gains = [];
-  const losses = [];
+  const gains: number[] = [];
+  const losses: number[] = [];
 
   for (let i = 1; i < data.length; i++) {
     const change = (data[i].c || 0) - (data[i - 1].c || 0);
@@ -268,15 +269,15 @@ function calculateCurvature(data: any[], index: number) {
 
 function calculateCorrelations(tickerData: any) {
   const symbols = Object.keys(tickerData);
-  const correlations = {};
+  const correlations: Record<string, number> = {};
 
   for (let i = 0; i < symbols.length; i++) {
     for (let j = i + 1; j < symbols.length; j++) {
       const symbol1 = symbols[i];
       const symbol2 = symbols[j];
       const correlation = calculatePearsonCorrelation(
-        tickerData[symbol1].map((d) => d.c),
-        tickerData[symbol2].map((d) => d.c),
+        tickerData[symbol1].map((d: any) => d.c),
+        tickerData[symbol2].map((d: any) => d.c),
       );
       correlations[`${symbol1}_${symbol2}`] = correlation;
     }
@@ -302,13 +303,13 @@ function calculatePearsonCorrelation(x: number[], y: number[]) {
 }
 
 function normalizeTickerData(tickerData: any) {
-  const normalized = {};
+  const normalized: Record<string, any[]> = {};
 
   Object.keys(tickerData).forEach((symbol) => {
     const data = tickerData[symbol];
     const basePrice = data[0]?.c || 1;
 
-    normalized[symbol] = data.map((d) => ({
+    normalized[symbol] = data.map((d: any) => ({
       ...d,
       normalizedPrice: ((d.c || 0) / basePrice) * 100,
       percentChange: (((d.c || 0) - basePrice) / basePrice) * 100,
@@ -319,13 +320,13 @@ function normalizeTickerData(tickerData: any) {
 }
 
 function calculatePerformanceMetrics(tickerData: any) {
-  const metrics = {};
+  const metrics: Record<string, any> = {};
 
   Object.keys(tickerData).forEach((symbol) => {
     const data = tickerData[symbol];
     const firstPrice = data[0]?.c || 0;
     const lastPrice = data[data.length - 1]?.c || 0;
-    const prices = data.map((d) => d.c || 0);
+    const prices = data.map((d: any) => d.c || 0);
 
     metrics[symbol] = {
       totalReturn: ((lastPrice - firstPrice) / firstPrice) * 100,
@@ -395,11 +396,15 @@ function generateComparisonInsights(tickerData: any, correlations: any) {
 
   // Find highest and lowest correlations
   const corrEntries = Object.entries(correlations);
-  const highestCorr = corrEntries.reduce((max, curr) =>
-    curr[1] > max[1] ? curr : max,
+  const highestCorr = (corrEntries as [string, number][]).reduce(
+    ([maxKey, maxVal], [currKey, currVal]) =>
+      currVal > maxVal ? [currKey, currVal] : [maxKey, maxVal],
+    ["", -Infinity],
   );
-  const lowestCorr = corrEntries.reduce((min, curr) =>
-    curr[1] < min[1] ? curr : min,
+  const lowestCorr = (corrEntries as [string, number][]).reduce(
+    ([minKey, minVal], [currKey, currVal]) =>
+      currVal < minVal ? [currKey, currVal] : [minKey, minVal],
+    ["", Infinity],
   );
 
   insights.push(
