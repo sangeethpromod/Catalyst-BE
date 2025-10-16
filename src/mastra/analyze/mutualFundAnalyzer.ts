@@ -1,3 +1,53 @@
+function formatMutualFundMarkdown(metrics: ReturnType<typeof analyzeMutualFundMetrics>, analysis: string): string {
+  // Table for performance metrics
+  const perfTable = `| Period | Absolute Return (%) | CAGR (%) |
+|--------|--------------------|----------|
+| 1 Year | ${metrics.returns.oneYear?.absoluteReturn ?? "N/A"} | ${metrics.returns.oneYear?.cagr ?? "N/A"} |
+| 3 Year | ${metrics.returns.threeYear?.absoluteReturn ?? "N/A"} | ${metrics.returns.threeYear?.cagr ?? "N/A"} |
+| 5 Year | ${metrics.returns.fiveYear?.absoluteReturn ?? "N/A"} | ${metrics.returns.fiveYear?.cagr ?? "N/A"} |`;
+
+  // Table for risk metrics
+  const riskTable = `| Metric | Value |
+|--------|-------|
+| Annualized Volatility | ${metrics.riskMetrics.volatility}% |
+| Track Record | ${metrics.riskMetrics.fundAge} |
+| Data Points | ${metrics.dataPoints} |`;
+
+  // Fund details
+  const detailsTable = `| Field | Value |
+|-------|-------|
+| Name | ${metrics.fundName} |
+| Fund House | ${metrics.fundHouse} |
+| Category | ${metrics.category} |
+| Type | ${metrics.type} |
+| Current NAV | ₹${metrics.currentNav} |`;
+
+  // Graph summary
+  const graphSummary = summarizeGraphs(metrics);
+
+  // Compose markdown
+  return `
+**Fund Details**
+
+${detailsTable}
+
+**Performance Metrics**
+
+${perfTable}
+
+**Risk Metrics**
+
+${riskTable}
+
+**Charts Summary**
+
+${graphSummary}
+
+**Agent Analysis**
+
+${analysis.trim()}
+`;
+}
 import { buffettAgent } from "../agents/buffettAgent.js";
 import { ackmanAgent } from "../agents/ackmanAgent.js";
 
@@ -102,19 +152,19 @@ function filterNavDataFrom2019(navData: Array<{ date: string; nav: string }>) {
 
 // Build monthly returns heatmap data from NAV series
 function buildMonthlyReturnsHeatmap(
-  navData: Array<{ date: string; nav: string }>,
+  navData: Array<{ date: string; nav: string }>
 ) {
   if (!navData?.length) {
     return {
-      label: "Monthly Returns Heatmap",
-      data: [] as Array<{ year: number; month: string; return: number }>,
+      label: "Monthly Returns Treemap",
+      data: [],
     };
   }
 
   // Group by YYYY-MM
   const byMonth = new Map<string, { first: number; last: number }>();
   const sorted = [...navData].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   for (const p of sorted) {
     const d = new Date(p.date);
@@ -124,7 +174,7 @@ function buildMonthlyReturnsHeatmap(
     else byMonth.get(key)!.last = nav;
   }
 
-  // Convert to flat list for heatmap (year, month short, return %)
+  // Build treemap: group by year, each year has months as children
   const months = [
     "Jan",
     "Feb",
@@ -139,26 +189,56 @@ function buildMonthlyReturnsHeatmap(
     "Nov",
     "Dec",
   ];
-  const data: Array<{ year: number; month: string; return: number }> = [];
+  const yearMap = new Map<
+    number,
+    Array<{
+      month: string;
+      return: number;
+      sign: "positive" | "negative" | "zero";
+    }>
+  >();
   for (const [key, val] of Array.from(byMonth.entries()).sort()) {
     const [y, m] = key.split("-");
+    const year = Number(y);
+    const monthIdx = Number(m) - 1;
     const ret = val.first > 0 ? ((val.last - val.first) / val.first) * 100 : 0;
-    data.push({
-      year: Number(y),
-      month: months[Number(m) - 1],
+    let sign: "positive" | "negative" | "zero" = "zero";
+    if (ret > 0) sign = "positive";
+    else if (ret < 0) sign = "negative";
+    const monthObj = {
+      month: months[monthIdx],
       return: Number(ret.toFixed(2)),
-    });
+      sign,
+    };
+    if (!yearMap.has(year)) yearMap.set(year, [monthObj]);
+    else yearMap.get(year)!.push(monthObj);
   }
 
-  return { label: "Monthly Returns Heatmap", data };
+  // Convert to array for treemap
+  const data: Array<{
+    year: number;
+    children: Array<{
+      month: string;
+      return: number;
+      sign: "positive" | "negative" | "zero";
+    }>;
+  }> = [];
+  for (const [year, children] of Array.from(yearMap.entries()).sort(
+    (a, b) => a[0] - b[0],
+  )) {
+    data.push({ year, children });
+  }
+
+  return { label: "Monthly Returns Treemap", data };
 }
 
-// Build risk vs reward chart data using volatility (risk) and CAGR (reward)
+
+
 function buildRiskRewardData(
   navData: Array<{ date: string; nav: string }>,
   returns1Y: ReturnType<typeof calculateReturns> | null,
   returns3Y: ReturnType<typeof calculateReturns> | null,
-  returns5Y: ReturnType<typeof calculateReturns> | null,
+  returns5Y: ReturnType<typeof calculateReturns> | null
 ) {
   const risk1Y = calculateVolatility(navData, 365);
   const risk3Y = calculateVolatility(navData, 365 * 3);
@@ -232,23 +312,32 @@ function analyzeMutualFundMetrics(data: MutualFundData) {
 }
 
 function summarizeGraphs(metrics: ReturnType<typeof analyzeMutualFundMetrics>) {
-  const heat = metrics.graphs.heatmap.data;
+  // Flatten treemap to get all months
+  const heatTree = metrics.graphs.heatmap.data;
   const rr = metrics.graphs.riskReward.data;
+  const allMonths: Array<{ year: number; month: string; return: number }> = [];
+  for (const yearObj of heatTree) {
+    for (const m of yearObj.children) {
+      allMonths.push({ year: yearObj.year, month: m.month, return: m.return });
+    }
+  }
   // Best/worst monthly since 2019
   let best: { year: number; month: string; return: number } | undefined;
   let worst: { year: number; month: string; return: number } | undefined;
-  for (const m of heat) {
+  for (const m of allMonths) {
     if (!best || m.return > best.return) best = m;
     if (!worst || m.return < worst.return) worst = m;
   }
   // Average of last 12 months
-  const last12 = heat.slice(-12);
+  const last12 = allMonths.slice(-12);
   const avg12 =
     last12.length > 0
       ? Number(
           (
-            last12.reduce((s, x) => s + (Number.isFinite(x.return) ? x.return : 0), 0) /
-            last12.length
+            last12.reduce(
+              (s, x) => s + (Number.isFinite(x.return) ? x.return : 0),
+              0,
+            ) / last12.length
           ).toFixed(2),
         )
       : null;
@@ -268,10 +357,23 @@ function summarizeGraphs(metrics: ReturnType<typeof analyzeMutualFundMetrics>) {
   } else {
     lines.push("- Heatmap: insufficient data");
   }
-  const fmtRR = (p?: { risk: number; reward: number; ratio: number; period: string }) =>
-    p ? `${p.period}: reward ${p.reward}% vs risk ${p.risk}% (ratio ${p.ratio})` : undefined;
-  const rrParts = [fmtRR(rr1), fmtRR(rr3), fmtRR(rr5)].filter(Boolean) as string[];
-  lines.push(rrParts.length ? `- Risk/Reward: ${rrParts.join(", ")}` : "- Risk/Reward: insufficient data");
+  const fmtRR = (p?: {
+    risk: number;
+    reward: number;
+    ratio: number;
+    period: string;
+  }) =>
+    p
+      ? `${p.period}: reward ${p.reward}% vs risk ${p.risk}% (ratio ${p.ratio})`
+      : undefined;
+  const rrParts = [fmtRR(rr1), fmtRR(rr3), fmtRR(rr5)].filter(
+    Boolean,
+  ) as string[];
+  lines.push(
+    rrParts.length
+      ? `- Risk/Reward: ${rrParts.join(", ")}`
+      : "- Risk/Reward: insufficient data",
+  );
   return lines.join("\n");
 }
 
@@ -289,12 +391,9 @@ export async function analyzeMutualFundWithBuffett(request: MFAnalysisRequest) {
     // Calculate key metrics
     const metrics = analyzeMutualFundMetrics(mfData);
 
-    console.log("\n=== Mutual Fund Metrics ===");
-    console.log(JSON.stringify(metrics, null, 2));
-
     // Create a detailed prompt for Warren Buffett analysis
-  const graphSummary = summarizeGraphs(metrics);
-  const analysisPrompt = `
+    const graphSummary = summarizeGraphs(metrics);
+    const analysisPrompt = `
 Analyze this Indian mutual fund from a value investing perspective:
 
 **Fund Details:**
@@ -327,8 +426,6 @@ Remember to be honest about the limitations - you prefer owning businesses direc
 `;
 
     // Get Buffett's analysis
-    console.log("\n=== Warren Buffett's Analysis ===\n");
-
     const response = await buffettAgent.generate([
       {
         role: "user",
@@ -336,9 +433,13 @@ Remember to be honest about the limitations - you prefer owning businesses direc
       },
     ]);
 
-    console.log(response.text);
-
-    return { metrics, analysis: response.text, data: { meta: mfData.meta } };
+    // Return Markdown-formatted response
+    return {
+      metrics,
+      analysis: response.text,
+      markdown: formatMutualFundMarkdown(metrics, response.text),
+      data: { meta: mfData.meta },
+    };
   } catch (error) {
     console.error("Error analyzing mutual fund:", error);
     throw error;
@@ -356,8 +457,8 @@ export async function analyzeMutualFundWithAckman(request: MFAnalysisRequest) {
 
     const metrics = analyzeMutualFundMetrics(mfData);
 
-  const graphSummary = summarizeGraphs(metrics);
-  const analysisPrompt = `
+    const graphSummary = summarizeGraphs(metrics);
+    const analysisPrompt = `
 Analyze this Indian mutual fund with an activist, value-unlocking lens:
 
 Fund: ${metrics.fundName}
@@ -387,7 +488,13 @@ Provide:
       { role: "user", content: analysisPrompt },
     ]);
 
-    return { metrics, analysis: response.text, data: { meta: mfData.meta } };
+    // Return Markdown-formatted response
+    return {
+      metrics,
+      analysis: response.text,
+      markdown: formatMutualFundMarkdown(metrics, response.text),
+      data: { meta: mfData.meta },
+    };
   } catch (error) {
     console.error("Error analyzing mutual fund (Ackman):", error);
     throw error;

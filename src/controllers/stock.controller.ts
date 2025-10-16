@@ -17,7 +17,8 @@ import { graphDataAgent } from "../mastra/agents/graphDataAgent.js";
 import { truthAgent } from "../mastra/agents/truthAgent.js";
 
 // Simple in-memory cache for analyze results to avoid repeated agent calls
-const analyzeCache: Map<string, { response: any; expiresAt: number }> = new Map();
+const analyzeCache: Map<string, { response: any; expiresAt: number }> =
+  new Map();
 
 export async function getStockAnalyses(req: Request, res: Response) {
   const { symbol } = req.params;
@@ -176,33 +177,47 @@ export async function analyzeStock(req: Request, res: Response) {
     const news = (newsData as any).articles || [];
 
     // Run fundamental analysis
-    const fundamentalResponse = await generateWithThrottle("fundamental", fundamentalAgent, [
-      {
-        role: "user",
-        content: `Analyze ${symbol} for ${timeframe} timeframe. Prefer JSON in this format, otherwise plain text is okay: {"summary": "string", "intrinsicValue": number, "undervaluationPercent": number, "keyMetrics": {"revenueGrowthYoY": number, "netMargin": number, "roe": number, "debtToEquity": number}}`,
-      },
-    ]);
+    const fundamentalResponse = await generateWithThrottle(
+      "fundamental",
+      fundamentalAgent,
+      [
+        {
+          role: "user",
+          content: `Analyze ${symbol} for ${timeframe} timeframe. Prefer JSON in this format, otherwise plain text is okay: {"summary": "string", "intrinsicValue": number, "undervaluationPercent": number, "keyMetrics": {"revenueGrowthYoY": number, "netMargin": number, "roe": number, "debtToEquity": number}}`,
+        },
+      ],
+    );
     const fundamentalRawText = fundamentalResponse.text;
-    const fundamentalAnalysisParsed = safeParseAgentResponse(fundamentalRawText, {
-      summary: fundamentalRawText,
-      intrinsicValue: 0,
-      undervaluationPercent: 0,
-      keyMetrics: {
-        revenueGrowthYoY: 0,
-        netMargin: 0,
-        roe: 0,
-        debtToEquity: 0
-      }
-    });
-    const fundamentalAnalysis = { ...fundamentalAnalysisParsed, rawText: fundamentalRawText };
+    const fundamentalAnalysisParsed = safeParseAgentResponse(
+      fundamentalRawText,
+      {
+        summary: fundamentalRawText,
+        intrinsicValue: 0,
+        undervaluationPercent: 0,
+        keyMetrics: {
+          revenueGrowthYoY: 0,
+          netMargin: 0,
+          roe: 0,
+          debtToEquity: 0,
+        },
+      },
+    );
+    const fundamentalAnalysis = {
+      ...fundamentalAnalysisParsed,
+      rawText: fundamentalRawText,
+    };
 
     // Run technical analysis
-    const technicalResponse = await generateWithThrottle("technical", technicalAgent, [
-      {
-        role: "user",
-        content: `Analyze ${symbol} for ${timeframe} timeframe. Prefer JSON in this format, otherwise plain text is okay: {"summary": "string", "indicators": {"rsi": number, "macd": {"signal": number, "histogram": number}, "movingAverages": {"MA50": number, "MA200": number}, "volumeTrend": "string"}}`,
-      },
-    ]);
+    const technicalResponse = await generateWithThrottle(
+      "technical",
+      technicalAgent,
+      [
+        {
+          role: "user",
+          content: `Analyze ${symbol} for ${timeframe} timeframe. Prefer JSON in this format, otherwise plain text is okay: {"summary": "string", "indicators": {"rsi": number, "macd": {"signal": number, "histogram": number}, "movingAverages": {"MA50": number, "MA200": number}, "volumeTrend": "string"}}`,
+        },
+      ],
+    );
     const technicalRawText = technicalResponse.text;
     const technicalAnalysisParsed = safeParseAgentResponse(technicalRawText, {
       summary: technicalRawText,
@@ -210,10 +225,13 @@ export async function analyzeStock(req: Request, res: Response) {
         rsi: 50,
         macd: { signal: 0, histogram: 0 },
         movingAverages: { MA50: 0, MA200: 0 },
-        volumeTrend: "neutral"
-      }
+        volumeTrend: "neutral",
+      },
     });
-    const technicalAnalysis = { ...technicalAnalysisParsed, rawText: technicalRawText };
+    const technicalAnalysis = {
+      ...technicalAnalysisParsed,
+      rawText: technicalRawText,
+    };
 
     // Run personality insights
     const personalities = ["buffett", "cohen", "dalio", "ackman", "thiel"];
@@ -230,16 +248,16 @@ export async function analyzeStock(req: Request, res: Response) {
         `personality:${agent}`,
         (agentMap as any)[agent],
         [
-        {
-          role: "user",
-          content: `Give ${agent}'s investment perspective on ${symbol} for ${timeframe} timeframe. Prefer JSON in this format, otherwise plain text is okay: {"agent": "${agent}Agent", "perspective": "string"}`,
-        },
-        ]
+          {
+            role: "user",
+            content: `Give ${agent}'s investment perspective on ${symbol} for ${timeframe} timeframe. Prefer JSON in this format, otherwise plain text is okay: {"agent": "${agent}Agent", "perspective": "string"}`,
+          },
+        ],
       );
       const pRawText = response.text;
       const pParsed = safeParseAgentResponse(pRawText, {
         agent: `${agent}Agent`,
-        perspective: pRawText
+        perspective: pRawText,
       });
       personalityInsights.push({ ...pParsed, rawText: pRawText });
     }
@@ -259,8 +277,8 @@ export async function analyzeStock(req: Request, res: Response) {
         valuationRisk: 5,
         earningsRisk: 5,
         volatilityRisk: 5,
-        liquidityRisk: 5
-      }
+        liquidityRisk: 5,
+      },
     });
     const riskAssessment = { ...riskAssessmentParsed, rawText: riskRawText };
 
@@ -275,16 +293,16 @@ export async function analyzeStock(req: Request, res: Response) {
     const graphDataParsed = safeParseAgentResponse(graphRawText, {
       priceHistoryChart: {
         label: "Price History",
-        dataPoints: []
+        dataPoints: [],
       },
       snakeyMomentumChart: {
         label: "Snakey Momentum",
-        dataPoints: []
+        dataPoints: [],
       },
       riskDistributionChart: {
         label: "Risk Distribution",
-        dataPoints: []
-      }
+        dataPoints: [],
+      },
     });
     const graphData = { ...graphDataParsed, rawText: graphRawText };
 
@@ -293,9 +311,9 @@ export async function analyzeStock(req: Request, res: Response) {
       {
         role: "user",
         content: `Given the following analyses for ${symbol} ${timeframe}: fundamental: ${JSON.stringify(
-          fundamentalAnalysis
+          fundamentalAnalysis,
         )}, technical: ${JSON.stringify(technicalAnalysis)}, personalities: ${JSON.stringify(
-          personalityInsights
+          personalityInsights,
         )}, risk: ${JSON.stringify(riskAssessment)}, provide a truth summary. Prefer JSON in this format, otherwise plain text is okay: {"verifiedWith": ["Gemini", "Perplexity"], "finalVerdict": "string", "confidence": number}`,
       },
     ]);
@@ -303,7 +321,7 @@ export async function analyzeStock(req: Request, res: Response) {
     const truthSummaryParsed = safeParseAgentResponse(truthRawText, {
       verifiedWith: ["Gemini", "Perplexity"],
       finalVerdict: truthRawText,
-      confidence: 0
+      confidence: 0,
     });
     const truthSummary = { ...truthSummaryParsed, rawText: truthRawText };
 
@@ -331,9 +349,12 @@ export async function analyzeStock(req: Request, res: Response) {
       newsHighlights,
     };
 
-  // update cache
-  analyzeCache.set(cacheKey, { response, expiresAt: Date.now() + CACHE_TTL_MS });
-  res.json(response);
+    // update cache
+    analyzeCache.set(cacheKey, {
+      response,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+    res.json(response);
   } catch (error) {
     console.error("Error in analyzeStock:", error);
     res.status(500).json({ error: "Internal server error" });

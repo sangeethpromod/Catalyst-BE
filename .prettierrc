@@ -1,1 +1,1 @@
-{ "singleQuote": true, "semi": true, "trailingComma": "all" }
+{ "singleQuote": false, "semi": true, "trailingComma": "all" }
